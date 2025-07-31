@@ -4,22 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Расписание</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .time-slot {
-      height: 60px; /* 1 час = 60px */
-      position: relative;
-    }
-    .event-block {
-      position: absolute;
-      background-color: #4CAF50;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f3f4f6; }
     .calendar-grid {
       display: grid;
       grid-template-columns: 60px repeat(7, 1fr);
@@ -31,11 +17,31 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background-color: #f0f0f0;
+      background-color: #d1d5db;
+      font-weight: bold;
+    }
+    .time-slot {
+      height: 60px; /* 1 час = 60px */
+      position: relative;
+      background-color: #ffffff;
+      display: flex;
+      align-items: center;
+      padding-left: 5px;
+    }
+    .event-block {
+      position: absolute;
+      background-color: #4CAF50;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      z-index: 1;
     }
   </style>
 </head>
-<body class="bg-gray-100 p-4">
+<body>
   <h1 class="text-3xl font-bold mb-4">Расписание</h1>
   <div class="flex mb-4">
     <select id="userSelect" class="p-2 border rounded" onchange="loadSchedule()">
@@ -48,17 +54,7 @@
       <button id="nextWeek" class="p-2 bg-blue-500 text-white rounded" onclick="changeWeek(1)">След.</button>
     </div>
   </div>
-  <div class="calendar-grid" id="calendarGrid">
-    <div class="day-header"></div>
-    <div class="day-header">Пн</div>
-    <div class="day-header">Вт</div>
-    <div class="day-header">Ср</div>
-    <div class="day-header">Чт</div>
-    <div class="day-header">Пт</div>
-    <div class="day-header">Сб</div>
-    <div class="day-header">Вс</div>
-    <!-- Временные слоты будут добавлены динамически -->
-  </div>
+  <div class="calendar-grid" id="calendarGrid"></div>
   <div id="error" class="text-red-500 mt-2"></div>
 
   <script>
@@ -117,7 +113,7 @@
         grid.appendChild(timeSlot);
         for (let day = 0; day < 7; day++) {
           const slot = document.createElement('div');
-          slot.className = 'time-slot bg-white';
+          slot.className = 'time-slot';
           grid.appendChild(slot);
         }
       }
@@ -128,17 +124,17 @@
         const startTime = new Date(`1970-01-01 ${event.startTime}`);
         const endTime = new Date(`1970-01-01 ${event.endTime}`);
         const durationMinutes = (endTime - startTime) / (1000 * 60);
-        const startHour = startTime.getHours() - 6;
+        const startHour = startTime.getHours() - 6; // Смещение с 6:00
         const startMinute = startTime.getMinutes();
-        const dayIndex = (eventDate - weekStart) / (1000 * 60 * 60 * 24);
+        const dayIndex = Math.floor((eventDate - weekStart) / (1000 * 60 * 60 * 24));
 
-        if (dayIndex >= 0 && dayIndex < 7) {
+        if (dayIndex >= 0 && dayIndex < 7 && startHour >= 0 && startHour < 18) { // Ограничение до 24:00
           const block = document.createElement('div');
           block.className = 'event-block';
-          block.style.top = `${(startHour * 60 + startMinute) / 60 * 60}px`;
-          block.style.height = `${durationMinutes / 60 * 60}px`;
-          block.style.left = `${60 + dayIndex * (100 / 7)}%`;
-          block.style.width = `${100 / 7 - 2}%`;
+          block.style.top = `${(startHour * 60 + startMinute) / 60 * 60}px`; // Позиция по высоте
+          block.style.height = `${Math.max(30, durationMinutes / 60 * 60)}px`; // Минимальная высота 30px
+          block.style.left = `${60 + dayIndex * (100 / 7)}%`; // Позиция по ширине
+          block.style.width = `${100 / 7 - 2}%`; // Ширина ячейки
           block.textContent = event.title;
           grid.appendChild(block);
         }
