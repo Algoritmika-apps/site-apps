@@ -29,7 +29,8 @@
 <button onclick="addEvent()">Добавить</button>
 
 <script>
-const apiUrl = 'https://script.google.com/macros/s/AKfycbzcxnMPkchl3eRO2f8Ctx6S1bq65EXSUkWqGDZIrUqqueIxlhj-chsD5dj6Tn8zrNIk/exec';
+// ⬇️ ВСТАВЬ СЮДА СВОЮ Google Apps Script ссылку (.exec)
+const apiUrl = 'https://script.google.com/macros/s/AKfycbx.../exec';
 
 function saveLogin() {
   localStorage.setItem('user', document.getElementById('login').value);
@@ -38,20 +39,22 @@ function saveLogin() {
 
 function loadSchedule() {
   const user = localStorage.getItem('user');
-  fetch(`${apiUrl}?action=getEvents&user=${user}`)
+  if (!user) return alert('Введите логин');
+
+  fetch(`${apiUrl}?action=getEvents&user=${encodeURIComponent(user)}`)
     .then(res => res.json())
-    .then(renderSchedule);
+    .then(renderSchedule)
+    .catch(err => console.error('Ошибка загрузки расписания:', err));
 }
 
 function renderSchedule(events) {
   const container = document.getElementById('schedule');
   container.innerHTML = '';
 
-  // Сетка: дни и время
   const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
   const hours = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
-  container.appendChild(document.createElement('div')); // пустой угол
+  container.appendChild(document.createElement('div')); // уголок
 
   for (let d of days) {
     const dayCell = document.createElement('div');
@@ -72,21 +75,21 @@ function renderSchedule(events) {
     }
   }
 
-  // Добавление событий
   for (let ev of events) {
     const date = new Date(ev.day);
-    const dayOfWeek = (date.getDay() + 6) % 7; // Пн=0, Вс=6
-
+    const dayOfWeek = (date.getDay() + 6) % 7;
     const start = parseInt(ev.startTime.split(':')[0]);
     const end = parseInt(ev.endTime.split(':')[0]);
-    const topIndex = 8 + start * 8 + dayOfWeek + 1;
 
     for (let i = start; i < end; i++) {
-      const cell = container.children[8 + i * 8 + dayOfWeek + 1];
-      const eventDiv = document.createElement('div');
-      eventDiv.className = 'event';
-      eventDiv.textContent = ev.title;
-      cell.appendChild(eventDiv);
+      const index = 8 + i * 8 + dayOfWeek + 1;
+      const cell = container.children[index];
+      if (cell) {
+        const eventDiv = document.createElement('div');
+        eventDiv.className = 'event';
+        eventDiv.textContent = ev.title;
+        cell.appendChild(eventDiv);
+      }
     }
   }
 }
@@ -98,13 +101,21 @@ function addEvent() {
   const startTime = document.getElementById('event-start').value;
   const endTime = document.getElementById('event-end').value;
 
-  fetch(`${apiUrl}?action=addEvent`, {
-    method: 'POST',
-    body: JSON.stringify({ user, title, day, startTime, endTime }),
-    headers: { 'Content-Type': 'application/json' }
-  }).then(() => {
-    loadSchedule();
+  if (!user || !title || !day || !startTime || !endTime) {
+    return alert('Заполните все поля');
+  }
+
+  const params = new URLSearchParams({
+    action: 'addEvent',
+    user, title, day, startTime, endTime
   });
+
+  fetch(`${apiUrl}?${params.toString()}`)
+    .then(() => {
+      alert('Событие добавлено!');
+      loadSchedule();
+    })
+    .catch(err => console.error('Ошибка при добавлении:', err));
 }
 </script>
 
