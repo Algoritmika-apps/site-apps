@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Вход</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #3C3C3C;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .login-box {
+      background: #545454;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px #000;
+    }
+    input {
+      padding: 8px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 8px 12px;
+      background: #E4E4E5;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>Введите логин</h2>
+    <input id="login" placeholder="напр. ivan" />
+    <button onclick="enter()">Войти</button>
+  </div>
+
+  <script>
+    function enter() {
+      const login = document.getElementById('login').value;
+      if (!login) return alert('Введите логин!');
+      localStorage.setItem('user', login);
+      window.location.href = "schedule.html";
+    }
+  </script>
+</body>
+</html>
