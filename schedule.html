@@ -2,198 +2,73 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Расписание</title>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #3C3C3C;
-      color: #fff;
-      padding: 10px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: 100px repeat(7, 1fr);
-    }
-    .time-label {
-      border: 1px solid #545454;
-      padding: 4px;
-      text-align: right;
-      background: #7A7A7A;
-    }
-    .cell {
-      border: 1px solid #545454;
-      height: 40px;
-      position: relative;
-      background: #949494;
-    }
-    .event {
-      background: #E4E4E5;
-      color: #000;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      text-align: center;
-      font-size: 12px;
-      border-radius: 4px;
-    }
-    button {
-      background: #E4E4E5;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      margin: 5px;
-    }
-    input {
-      padding: 4px;
-      border-radius: 6px;
-      margin: 5px;
-      border: none;
-    }
-    .week-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; max-width: 800px; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    .error { color: red; }
   </style>
 </head>
 <body>
+  <h1>Расписание</h1>
+  <select id="userSelect" onchange="loadSchedule()">
+    <option value="ivan">Иван</option>
+    <option value="test">Тест</option>
+  </select>
+  <table id="scheduleTable">
+    <thead>
+      <tr>
+        <th>Название</th>
+        <th>Дата</th>
+        <th>Начало</th>
+        <th>Конец</th>
+      </tr>
+    </thead>
+    <tbody id="scheduleBody"></tbody>
+  </table>
+  <div id="error" class="error"></div>
 
-<h2>Расписание</h2>
-<div class="week-header">
-  <button onclick="changeWeek(-1)">←</button>
-  <div id="weekRange">Неделя</div>
-  <button onclick="changeWeek(1)">→</button>
-</div>
+  <script>
+    const GOOGLE_SCRIPT_URL = 'YOUR_GOOGLE_SCRIPT_URL'; // Replace with your deployed Google Script URL
 
-<button onclick="loadSchedule()">Обновить</button>
-<div id="schedule" class="grid"></div>
-
-<h3>Добавить событие</h3>
-<input id="event-title" placeholder="Название">
-<input id="event-date" type="date">
-<input id="event-start" type="time">
-<input id="event-end" type="time">
-<button onclick="addEvent()">Добавить</button>
-
-<script>
-const apiUrl = 'https://script.google.com/macros/s/AKfycbzcxnMPkchl3eRO2f8Ctx6S1bq65EXSUkWqGDZIrUqqueIxlhj-chsD5dj6Tn8zrNIk/exec';
-let currentWeekStart = getMonday(new Date());
-
-function getMonday(d) {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = date.getDate() - ((day + 6) % 7);
-  return new Date(date.setDate(diff));
-}
-
-function changeWeek(offset) {
-  currentWeekStart.setDate(currentWeekStart.getDate() + offset * 7);
-  loadSchedule();
-}
-
-function formatDate(date) {
-  return date.toISOString().split('T')[0];
-}
-
-function loadSchedule() {
-  const user = localStorage.getItem('user');
-  if (!user) return alert('Нет логина. Вернитесь на login.html');
-
-  const weekDates = [];
-  const weekStart = new Date(currentWeekStart);
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(weekStart);
-    day.setDate(day.getDate() + i);
-    weekDates.push(formatDate(day));
-  }
-
-  document.getElementById('weekRange').textContent =
-    `${weekDates[0]} – ${weekDates[6]}`;
-
-  fetch(`${apiUrl}?action=getEvents&user=${user}`)
-    .then(res => res.json())
-    .then(data => renderSchedule(data, weekDates))
-    .catch(err => console.error('Ошибка загрузки:', err));
-}
-
-function renderSchedule(events, weekDates) {
-  const container = document.getElementById('schedule');
-  container.innerHTML = '';
-
-  const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-  const hours = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
-
-  container.appendChild(document.createElement('div'));
-  for (let i = 0; i < 7; i++) {
-    const dayCell = document.createElement('div');
-    dayCell.textContent = `${days[i]}\n${weekDates[i]}`;
-    container.appendChild(dayCell);
-  }
-
-  for (let h of hours) {
-    const label = document.createElement('div');
-    label.className = 'time-label';
-    label.textContent = h;
-    container.appendChild(label);
-
-    for (let d = 0; d < 7; d++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      container.appendChild(cell);
+    function loadSchedule() {
+      const user = document.getElementById('userSelect').value;
+      const url = `${GOOGLE_SCRIPT_URL}?action=getEvents&user=${user}`;
+      
+      fetch(url, { method: 'GET' })
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          const tbody = document.getElementById('scheduleBody');
+          tbody.innerHTML = '';
+          if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4">Нет событий</td></tr>';
+          } else {
+            data.forEach(event => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${event.title}</td>
+                <td>${event.day}</td>
+                <td>${event.startTime}</td>
+                <td>${event.endTime}</td>
+              `;
+              tbody.appendChild(row);
+            });
+          }
+          document.getElementById('error').textContent = '';
+        })
+        .catch(error => {
+          document.getElementById('error').textContent = `Ошибка: ${error.message}`;
+        });
     }
-  }
 
-  for (let ev of events) {
-    const idx = weekDates.indexOf(ev.day);
-    if (idx === -1) continue;
-
-    const startHour = parseInt(ev.startTime.split(':')[0]);
-    const endHour = parseInt(ev.endTime.split(':')[0]);
-
-    for (let h = startHour; h < endHour; h++) {
-      const index = 8 + h * 8 + idx + 1;
-      const cell = container.children[index];
-      if (cell) {
-        const div = document.createElement('div');
-        div.className = 'event';
-        div.textContent = ev.title;
-        cell.appendChild(div);
-      }
-    }
-  }
-}
-
-function addEvent() {
-  const user = localStorage.getItem('user');
-  const title = document.getElementById('event-title').value;
-  const day = document.getElementById('event-date').value;
-  const startTime = document.getElementById('event-start').value;
-  const endTime = document.getElementById('event-end').value;
-
-  if (!user || !title || !day || !startTime || !endTime) {
-    return alert('Заполните все поля');
-  }
-
-  const params = new URLSearchParams({
-    action: 'addEvent',
-    user, title, day, startTime, endTime
-  });
-
-  fetch(`${apiUrl}?${params.toString()}`)
-    .then(() => {
-      alert('Событие добавлено!');
-      loadSchedule();
-    })
-    .catch(err => console.error('Ошибка при добавлении:', err));
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadSchedule();
-});
-</script>
-
+    // Load schedule on page load
+    window.onload = loadSchedule;
+  </script>
 </body>
 </html>
