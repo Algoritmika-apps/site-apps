@@ -5,90 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Расписание</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f3f4f6; }
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: 60px repeat(7, 1fr);
-      gap: 1px;
-      background-color: #e0e0e0;
-    }
-    .day-header {
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #d1d5db;
-      font-weight: bold;
-    }
-    .time-slot {
-      height: 60px; /* 1 час = 60px */
-      position: relative;
-      background-color: #ffffff;
-      display: flex;
-      align-items: center;
-      padding-left: 5px;
-    }
-    .event-block {
-      position: absolute;
-      background-color: #4CAF50;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      z-index: 1;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; max-width: 800px; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    .error { color: red; }
   </style>
 </head>
 <body>
-  <h1 class="text-3xl font-bold mb-4">Расписание</h1>
-  <div class="flex mb-4">
-    <select id="userSelect" class="p-2 border rounded" onchange="loadSchedule()">
-      <option value="ivan">Иван</option>
-      <option value="test">Тест</option>
-    </select>
-    <div class="ml-4">
-      <button id="prevWeek" class="p-2 bg-blue-500 text-white rounded" onclick="changeWeek(-1)">Пред.</button>
-      <span id="weekRange" class="px-4"></span>
-      <button id="nextWeek" class="p-2 bg-blue-500 text-white rounded" onclick="changeWeek(1)">След.</button>
-    </div>
-  </div>
-  <div class="calendar-grid" id="calendarGrid"></div>
-  <div id="error" class="text-red-500 mt-2"></div>
+  <h1>Расписание</h1>
+  <select id="userSelect" onchange="loadSchedule()">
+    <option value="ivan">Иван</option>
+    <option value="test">Тест</option>
+  </select>
+  <table id="scheduleTable">
+    <thead>
+      <tr>
+        <th>Название</th>
+        <th>Дата</th>
+        <th>Начало</th>
+        <th>Конец</th>
+      </tr>
+    </thead>
+    <tbody id="scheduleBody"></tbody>
+  </table>
+  <div id="error" class="error"></div>
 
   <script>
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcxnMPkchl3eRO2f8Ctx6S1bq65EXSUkWqGDZIrUqqueIxlhj-chsD5dj6Tn8zrNIk/exec'; // Замените на URL вашего скрипта
-    let currentWeekOffset = 0;
-
-    function getWeekRange(offset) {
-      const now = new Date();
-      now.setDate(now.getDate() + offset * 7);
-      const start = new Date(now);
-      start.setDate(now.getDate() - now.getDay() + 1);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      return { start, end };
-    }
-
-    function changeWeek(offset) {
-      currentWeekOffset += offset;
-      loadSchedule();
-    }
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcxnMPkchl3eRO2f8Ctx6S1bq65EXSUkWqGDZIrUqqueIxlhj-chsD5dj6Tn8zrNIk/exec'; // Replace with your deployed Google Script URL
 
     function loadSchedule() {
       const user = document.getElementById('userSelect').value;
-      const { start, end } = getWeekRange(currentWeekOffset);
-      document.getElementById('weekRange').textContent = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
-      
       const url = `${GOOGLE_SCRIPT_URL}?action=getEvents&user=${user}`;
+      
       fetch(url, { method: 'GET' })
         .then(response => {
           if (!response.ok) throw new Error('Network response was not ok');
           return response.json();
         })
         .then(data => {
-          renderCalendar(data, start);
+          const tbody = document.getElementById('scheduleBody');
+          tbody.innerHTML = '';
+          if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4">Нет событий</td></tr>';
+          } else {
+            data.forEach(event => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${event.title}</td>
+                <td>${event.day}</td>
+                <td>${event.startTime}</td>
+                <td>${event.endTime}</td>
+              `;
+              tbody.appendChild(row);
+            });
+          }
           document.getElementById('error').textContent = '';
         })
         .catch(error => {
@@ -96,51 +67,7 @@
         });
     }
 
-    function renderCalendar(events, weekStart) {
-      const grid = document.getElementById('calendarGrid');
-      grid.innerHTML = '';
-      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-
-      // Заголовки
-      grid.innerHTML += '<div class="day-header"></div>';
-      days.forEach(day => grid.innerHTML += `<div class="day-header">${day}</div>`);
-
-      // Временные слоты
-      for (let hour = 6; hour < 24; hour++) {
-        const timeSlot = document.createElement('div');
-        timeSlot.className = 'time-slot';
-        timeSlot.textContent = `${hour}:00`;
-        grid.appendChild(timeSlot);
-        for (let day = 0; day < 7; day++) {
-          const slot = document.createElement('div');
-          slot.className = 'time-slot';
-          grid.appendChild(slot);
-        }
-      }
-
-      // Блоки событий
-      events.forEach(event => {
-        const eventDate = new Date(event.day);
-        const startTime = new Date(`1970-01-01 ${event.startTime}`);
-        const endTime = new Date(`1970-01-01 ${event.endTime}`);
-        const durationMinutes = (endTime - startTime) / (1000 * 60);
-        const startHour = startTime.getHours() - 6; // Смещение с 6:00
-        const startMinute = startTime.getMinutes();
-        const dayIndex = Math.floor((eventDate - weekStart) / (1000 * 60 * 60 * 24));
-
-        if (dayIndex >= 0 && dayIndex < 7 && startHour >= 0 && startHour < 18) { // Ограничение до 24:00
-          const block = document.createElement('div');
-          block.className = 'event-block';
-          block.style.top = `${(startHour * 60 + startMinute) / 60 * 60}px`; // Позиция по высоте
-          block.style.height = `${Math.max(30, durationMinutes / 60 * 60)}px`; // Минимальная высота 30px
-          block.style.left = `${60 + dayIndex * (100 / 7)}%`; // Позиция по ширине
-          block.style.width = `${100 / 7 - 2}%`; // Ширина ячейки
-          block.textContent = event.title;
-          grid.appendChild(block);
-        }
-      });
-    }
-
+    // Load schedule on page load
     window.onload = loadSchedule;
   </script>
 </body>
