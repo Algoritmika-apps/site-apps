@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Расписание</title>
+  <style>
+    body { font-family: sans-serif; }
+    .grid { display: grid; grid-template-columns: 100px repeat(7, 1fr); }
+    .time-label { border: 1px solid #ccc; padding: 2px; text-align: right; }
+    .cell { border: 1px solid #eee; height: 40px; position: relative; }
+    .event { background: lightblue; position: absolute; top: 0; left: 0; right: 0; text-align: center; font-size: 12px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<h2>Логин</h2>
+<input id="login" placeholder="Введите логин" />
+<button onclick="saveLogin()">Войти</button>
+
+<h2>Расписание</h2>
+<button onclick="loadSchedule()">Обновить</button>
+<div id="schedule" class="grid"></div>
+
+<h3>Добавить событие</h3>
+<input id="event-title" placeholder="Название">
+<input id="event-date" type="date">
+<input id="event-start" type="time">
+<input id="event-end" type="time">
+<button onclick="addEvent()">Добавить</button>
+
+<script>
+const apiUrl = 'https://script.google.com/macros/s/___ВАША_ССЫЛКА___/exec';
+
+function saveLogin() {
+  localStorage.setItem('user', document.getElementById('login').value);
+  loadSchedule();
+}
+
+function loadSchedule() {
+  const user = localStorage.getItem('user');
+  fetch(`${apiUrl}?action=getEvents&user=${user}`)
+    .then(res => res.json())
+    .then(renderSchedule);
+}
+
+function renderSchedule(events) {
+  const container = document.getElementById('schedule');
+  container.innerHTML = '';
+
+  // Сетка: дни и время
+  const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const hours = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+
+  container.appendChild(document.createElement('div')); // пустой угол
+
+  for (let d of days) {
+    const dayCell = document.createElement('div');
+    dayCell.textContent = d;
+    container.appendChild(dayCell);
+  }
+
+  for (let h of hours) {
+    const label = document.createElement('div');
+    label.className = 'time-label';
+    label.textContent = h;
+    container.appendChild(label);
+
+    for (let d = 0; d < 7; d++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      container.appendChild(cell);
+    }
+  }
+
+  // Добавление событий
+  for (let ev of events) {
+    const date = new Date(ev.day);
+    const dayOfWeek = (date.getDay() + 6) % 7; // Пн=0, Вс=6
+
+    const start = parseInt(ev.startTime.split(':')[0]);
+    const end = parseInt(ev.endTime.split(':')[0]);
+    const topIndex = 8 + start * 8 + dayOfWeek + 1;
+
+    for (let i = start; i < end; i++) {
+      const cell = container.children[8 + i * 8 + dayOfWeek + 1];
+      const eventDiv = document.createElement('div');
+      eventDiv.className = 'event';
+      eventDiv.textContent = ev.title;
+      cell.appendChild(eventDiv);
+    }
+  }
+}
+
+function addEvent() {
+  const user = localStorage.getItem('user');
+  const title = document.getElementById('event-title').value;
+  const day = document.getElementById('event-date').value;
+  const startTime = document.getElementById('event-start').value;
+  const endTime = document.getElementById('event-end').value;
+
+  fetch(`${apiUrl}?action=addEvent`, {
+    method: 'POST',
+    body: JSON.stringify({ user, title, day, startTime, endTime }),
+    headers: { 'Content-Type': 'application/json' }
+  }).then(() => {
+    loadSchedule();
+  });
+}
+</script>
+
+</body>
+</html>
