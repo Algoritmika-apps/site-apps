@@ -35,38 +35,38 @@
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcxnMPkchl3eRO2f8Ctx6S1bq65EXSUkWqGDZIrUqqueIxlhj-chsD5dj6Tn8zrNIk/exec';
 
     function loadSchedule() {
-      const user = document.getElementById('userSelect').value;
-      const url = `${GOOGLE_SCRIPT_URL}?action=getEvents&user=${user}`;
-      
-      fetch(url, { method: 'GET' })
-        .then(response => {
-          if (!response.ok) throw new Error('Network response was not ok');
-          return response.json();
-        })
-        .then(data => {
-          const tbody = document.getElementById('scheduleBody');
-          tbody.innerHTML = '';
-          if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4">Нет событий</td></tr>';
-          } else {
-            data.forEach(event => {
-              const row = document.createElement('tr');
-              row.innerHTML = `
-                <td>${event.title}</td>
-                <td>${event.date}</td>
-                <td>${event.startTime}</td>
-                <td>${event.endTime}</td>
-              `;
-              tbody.appendChild(row);
-            });
-          }
-          document.getElementById('error').textContent = '';
-        })
-        .catch(error => {
-          document.getElementById('error').textContent = `Ошибка: ${error.message}`;
+  const user = document.getElementById('userSelect').value;
+  const timestamp = new Date().getTime(); // уникальное число
+  const url = `${GOOGLE_SCRIPT_URL}?action=getEvents&user=${user}&t=${timestamp}`;
+  
+  fetch(url, { method: 'GET', cache: 'no-store' })
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.json();
+    })
+    .then(data => {
+      const tbody = document.getElementById('scheduleBody');
+      tbody.innerHTML = '';
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">Нет событий</td></tr>';
+      } else {
+        data.forEach(event => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${event.title}</td>
+            <td>${event.date}</td>
+            <td>${event.startTime}</td>
+            <td>${event.endTime}</td>
+          `;
+          tbody.appendChild(row);
         });
-    }
-
+      }
+      document.getElementById('error').textContent = '';
+    })
+    .catch(error => {
+      document.getElementById('error').textContent = `Ошибка: ${error.message}`;
+    });
+}
     window.onload = () => {
     const select = document.getElementById('userSelect');
     // Загружаем данные для первого выбранного пользователя
