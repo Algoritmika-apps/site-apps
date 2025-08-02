@@ -32,7 +32,7 @@
   <div id="error" class="error"></div>
 
   <script>
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcxnMPkchl3eRO2f8Ctx6S1bq65EXSUkWqGDZIrUqqueIxlhj-chsD5dj6Tn8zrNIk/exec'; // Replace with your deployed Google Script URL
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcxnMPkchl3eRO2f8Ctx6S1bq65EXSUkWqGDZIrUqqueIxlhj-chsD5dj6Tn8zrNIk/exec';
 
     function loadSchedule() {
       const user = document.getElementById('userSelect').value;
@@ -53,7 +53,7 @@
               const row = document.createElement('tr');
               row.innerHTML = `
                 <td>${event.title}</td>
-                <td>${event.day}</td>
+                <td>${event.date}</td>
                 <td>${event.startTime}</td>
                 <td>${event.endTime}</td>
               `;
@@ -67,7 +67,7 @@
         });
     }
 
-    // Load schedule on page load
+    // Загружаем расписание при открытии страницы
     window.onload = loadSchedule;
   </script>
 </body>
