@@ -67,7 +67,14 @@
         });
     }
 
-    window.onload = loadSchedule;
+    window.onload = () => {
+    const select = document.getElementById('userSelect');
+    // Загружаем данные для первого выбранного пользователя
+    loadSchedule();
+  
+    // Также можно сразу подписаться на изменение
+    select.addEventListener('change', loadSchedule);
+    };
   </script>
 </body>
 </html>
